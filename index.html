@@ -12,8 +12,9 @@
 
   <link rel="stylesheet" href="css/normalize.css">
   <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-<!--  <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">-->
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+  <!--  <link href = "https://fonts.googleapis.com/icon?family=Material+Icons" rel = "stylesheet">-->
   <meta name="theme-color" content="#fafafa">
 </head>
 
@@ -34,20 +35,33 @@
 </div>
 <div class="my-page">
   <div class="side-bar">
-
     <button hx-get="blog/quarkus-spring-boot.html" hx-swap="innerHTML"
             class="blog-link" hx-target="#article">
       Quarkus vs Spring Boot, heeft het nieuwe framework een kans?
     </button>
-    <button hx-get="blog/jdk.html" hx-swap="innerHTML"
+    <button hx-get="blog/java21optional.html" hx-swap="innerHTML"
             class="blog-link" hx-target="#article">
-      Waarom niet de Oracle JDK gebruiken?
+      Using the features of openJDK 21 to create a better <code>Optional</code>
     </button>
   </div>
   <div class="article">
     <p id="article">
   </div>
 </div>
+<script>
+  const blogButtons = document.getElementsByClassName("blog-link");
+
+  for (let btn of blogButtons) {
+    btn.addEventListener("click", selected);
+  }
+
+  function selected(event) {
+    for (let btn of blogButtons) {
+      btn.className = "blog-link";
+    }
+    event.target.classList.add("selected");
+  }
+</script>
 </body>
 
 </html>
