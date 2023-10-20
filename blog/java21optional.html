@@ -1,0 +1,132 @@
+<h1>Building better Optional in Java 21</h1>
+<h2>What Optional should have been</h2>
+<p>Since "new" java, starting with java 8, the java standard has been expanded to support more modern programming paradigms.<br>
+Optional was an obvious improvement over the existing null check / NullPointerException state.<br>
+However, after 9 years since Java 8 with the introduction of Optional, it is still not as widely used as in other languages.</p>
+<h2>Why is Optional not used more?</h2>
+<p>Using Optional is not as easy as it should be. The syntax is verbose and the API is not as intuitive as it could be.</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">testOptional</span>{
+    <span class="pl-c1">@</span><span class="pl-c1">Test</span>
+    <span class="pl-smi">void</span> <span class="pl-en">testNewOptional</span>() {
+        <span class="pl-c">// Old style is still supported:</span>
+        <span class="pl-smi">Optional</span>.<span class="pl-en">of</span>(<span class="pl-s">"ifPresent"</span>)
+                .<span class="pl-en">ifPresent</span>(<span class="pl-smi">System</span>.<span class="pl-s1">out</span>::<span class="pl-s1">println</span>);
+        <span class="pl-smi">Optional</span>.<span class="pl-en">empty</span>()
+                .<span class="pl-en">ifPresent</span>((<span class="pl-s1">v</span>) -&gt; <span class="pl-en">fail</span>(<span class="pl-en">format</span>(<span class="pl-s">"Should not enter branch; value is '%s'"</span>, <span class="pl-s1">v</span>)));
+        <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">String</span>&gt; <span class="pl-s1">stringOpt</span> = <span class="pl-en">present</span>(<span class="pl-s">"ifPresentOrElse"</span>);
+        <span class="pl-k">if</span> (<span class="pl-s1">stringOpt</span>.<span class="pl-en">isPresent</span>()) {
+            <span class="pl-smi">System</span>.<span class="pl-s1">out</span>.<span class="pl-en">println</span>(<span class="pl-s1">stringOpt</span>.<span class="pl-en">get</span>());
+        } <span class="pl-k">else</span> {
+            <span class="pl-en">fail</span>(<span class="pl-s">"Should not enter branch"</span>);
+        }
+    }
+}</pre></div>
+<p>This can be solved by record pattern matching:</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">testOptional</span>{
+    <span class="pl-c1">@</span><span class="pl-c1">Test</span>
+    <span class="pl-smi">void</span> <span class="pl-en">testNewOptional</span>() {
+        <span class="pl-c">// New style with pattern matching</span>
+        <span class="pl-k">switch</span> (<span class="pl-smi">Optional</span>.<span class="pl-en">of</span>(<span class="pl-s">"Hello"</span>)) {
+            <span class="pl-k">case</span> <span class="pl-en">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">value</span>) -&gt; <span class="pl-en">assertEquals</span>(<span class="pl-s">"Hello"</span>, <span class="pl-s1">value</span>);
+            <span class="pl-k">case</span> <span class="pl-en">Empty</span>() -&gt; <span class="pl-en">fail</span>(<span class="pl-s">"Should not enter branch"</span>);
+        }
+        <span class="pl-k">if</span> (<span class="pl-smi">Optional</span>.<span class="pl-en">of</span>(<span class="pl-s">"test"</span>) <span class="pl-k">instanceof</span> <span class="pl-smi">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">value</span>)) {
+            <span class="pl-en">assertEquals</span>(<span class="pl-s">"test"</span>, <span class="pl-s1">value</span>);
+        } <span class="pl-k">else</span> {
+            <span class="pl-en">fail</span>(<span class="pl-s">"Should not enter branch"</span>);
+        }
+    }
+}</pre></div>
+<p>This pattern matching has been enabled by creating a sealed interface with two implementations:</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">sealed</span> <span class="pl-k">interface</span> <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; <span class="pl-c">/* implicit permits Optional.Empty, Optional.Present*/</span> {
+    <span class="pl-k">static</span> &lt;<span class="pl-smi">T</span>&gt; <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; <span class="pl-en">empty</span>() {
+        <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-smi">Empty</span>&lt;&gt;();
+    }
+    <span class="pl-k">static</span> &lt;<span class="pl-smi">T</span>&gt; <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; <span class="pl-en">present</span>(<span class="pl-smi">T</span> <span class="pl-s1">value</span>) {
+        <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-smi">Present</span>&lt;&gt;(<span class="pl-s1">value</span>);
+    }
+    record <span class="pl-s1">Empty</span>&lt;<span class="pl-smi">T</span>&gt;() <span class="pl-k">implements</span> <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; {
+    }
+    record <span class="pl-s1">Present</span>&lt;<span class="pl-smi">T</span>&gt;(<span class="pl-smi">T</span> <span class="pl-s1">value</span>) <span class="pl-k">implements</span> <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; {
+    }
+
+    <span class="pl-c">/*</span>
+<span class="pl-c">     * Throws NoSuchElementException if this is None</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">default</span> <span class="pl-smi">T</span> <span class="pl-en">get</span>() {
+        <span class="pl-k">return</span> <span class="pl-k">switch</span> (<span class="pl-smi">this</span>) {
+            <span class="pl-k">case</span> <span class="pl-en">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">some</span>) -&gt; <span class="pl-s1">some</span>;
+            <span class="pl-k">case</span> <span class="pl-en">Empty</span>() -&gt; <span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">NoSuchElementException</span>(<span class="pl-s">"Cannot get value from None"</span>);
+        };
+    }
+    <span class="pl-c">// part of the api implemented</span>
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * Unwrap the value, if present, otherwise return other.</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">default</span> <span class="pl-smi">T</span> <span class="pl-en">orElse</span>(<span class="pl-smi">T</span> <span class="pl-s1">other</span>) {
+        <span class="pl-k">return</span> <span class="pl-k">switch</span> (<span class="pl-smi">this</span>) {
+            <span class="pl-k">case</span> <span class="pl-en">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">some</span>) -&gt; <span class="pl-s1">some</span>;
+            <span class="pl-k">case</span> <span class="pl-en">Empty</span>() -&gt; <span class="pl-s1">other</span>;
+        };
+    }
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * Filters the optional value, if the predicate returns false.</span>
+<span class="pl-c">     */</span>
+    <span class="pl-k">default</span> <span class="pl-smi">Optional</span>&lt;<span class="pl-smi">T</span>&gt; <span class="pl-en">filter</span>(<span class="pl-smi">java</span>.<span class="pl-smi">util</span>.<span class="pl-smi">function</span>.<span class="pl-smi">Predicate</span>&lt;? <span class="pl-en">super</span> <span class="pl-smi">T</span>&gt; <span class="pl-s1">predicate</span>) {
+        <span class="pl-k">return</span> <span class="pl-k">switch</span> (<span class="pl-smi">this</span>) {
+            <span class="pl-k">case</span> <span class="pl-en">Empty</span>() -&gt; <span class="pl-smi">this</span>;
+            <span class="pl-k">case</span> <span class="pl-en">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">some</span>) <span class="pl-s1">when</span> <span class="pl-s1">predicate</span>.<span class="pl-en">test</span>(<span class="pl-s1">some</span>) -&gt; <span class="pl-smi">this</span>;
+            <span class="pl-k">case</span> <span class="pl-en">Present</span>(<span class="pl-smi">var</span> <span class="pl-s1">ignored</span>) -&gt; <span class="pl-en">empty</span>();
+        };
+    }
+}</pre></div>
+<p>All methods are declared in this interface, either as <code class="notranslate">static</code> or <code class="notranslate">default</code> methods.<br>
+To get more control over the access modifiers it might be better to use an abstract class rather than an interface. However, records cant extend any classes, so this is not possible.</p>
+<p>For whole implementation see <a href="https://github.com/lesjon/java21blog/blob/main/src/main/java/nl/leonklute/optional/Optional.java">Optional.java</a></p>
+<h2>Why is this better?</h2>
+<p>The new syntax is more concise when unwrapping the value.</p>
+<h2>Implementing Result type</h2>
+<p>This Syntax could also be used to make other parts of java more functional. For example, the Result type.<br>
+The Result type is a type that can hold either a value or an error. This is useful when you want to return a value, but also want to be able to return an error.</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">public</span> <span class="pl-k">sealed</span> <span class="pl-k">interface</span> <span class="pl-smi">Result</span>&lt;<span class="pl-smi">T</span>&gt; <span class="pl-c">/*implicit permits in same package*/</span> {
+    <span class="pl-k">static</span> &lt;<span class="pl-smi">R</span>&gt; <span class="pl-smi">Result</span>&lt;<span class="pl-smi">R</span>&gt; <span class="pl-en">from</span>(<span class="pl-smi">Callable</span>&lt;<span class="pl-smi">R</span>&gt; <span class="pl-s1">callable</span>) {
+        <span class="pl-k">try</span> {
+            <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-smi">Ok</span>&lt;&gt;(<span class="pl-s1">callable</span>.<span class="pl-en">call</span>());
+        } <span class="pl-k">catch</span> (<span class="pl-smi">Exception</span> <span class="pl-s1">e</span>) {
+            <span class="pl-k">return</span> <span class="pl-k">new</span> <span class="pl-smi">Error</span>&lt;&gt;(<span class="pl-s1">e</span>);
+        }
+    }
+
+    record <span class="pl-s1">Ok</span>&lt;<span class="pl-smi">R</span>&gt;(<span class="pl-smi">R</span> <span class="pl-s1">value</span>) <span class="pl-k">implements</span> <span class="pl-smi">Result</span>&lt;<span class="pl-smi">R</span>&gt; {
+    }
+
+    record <span class="pl-s1">Error</span>&lt;<span class="pl-smi">R</span>, <span class="pl-smi">E</span> <span class="pl-k">extends</span> <span class="pl-smi">Throwable</span>&gt;(<span class="pl-smi">E</span> <span class="pl-s1">throwable</span>) <span class="pl-k">implements</span> <span class="pl-smi">Result</span>&lt;<span class="pl-smi">R</span>&gt; {
+    }
+}</pre></div>
+<p>This can be used to return a value or an error:</p>
+<div class="highlight highlight-source-java"><pre class="notranslate"><span class="pl-k">class</span> <span class="pl-smi">ResultTest</span> {
+    <span class="pl-c1">@</span><span class="pl-c1">Test</span>
+    <span class="pl-smi">void</span> <span class="pl-en">testResult</span>() {
+        <span class="pl-smi">Callable</span>&lt;<span class="pl-smi">String</span>&gt; <span class="pl-s1">callable</span> = () -&gt; <span class="pl-s">"Hello"</span>;
+        <span class="pl-k">switch</span> (<span class="pl-smi">Result</span>.<span class="pl-en">from</span>(<span class="pl-s1">callable</span>)) {
+            <span class="pl-k">case</span> <span class="pl-smi">Result</span>.<span class="pl-en">Ok</span>(<span class="pl-smi">var</span> <span class="pl-s1">value</span>) -&gt; <span class="pl-en">assertEquals</span>(<span class="pl-s">"Hello"</span>, <span class="pl-s1">value</span>);
+            <span class="pl-k">case</span> <span class="pl-smi">Result</span>.<span class="pl-en">Error</span>(<span class="pl-smi">var</span> <span class="pl-s1">throwable</span>) -&gt; <span class="pl-en">fail</span>(<span class="pl-s">"Should not enter branch"</span>, <span class="pl-s1">throwable</span>);
+        }
+    }
+
+    <span class="pl-c1">@</span><span class="pl-c1">Test</span>
+    <span class="pl-smi">void</span> <span class="pl-en">testThrowable</span>() {
+        <span class="pl-smi">Callable</span>&lt;<span class="pl-smi">String</span>&gt; <span class="pl-s1">throwingCallable</span> = () -&gt; {<span class="pl-k">throw</span> <span class="pl-k">new</span> <span class="pl-smi">RuntimeException</span>(<span class="pl-s">"this should not actually fail"</span>);};
+        <span class="pl-k">switch</span> (<span class="pl-smi">Result</span>.<span class="pl-en">from</span>(<span class="pl-s1">throwingCallable</span>)) {
+            <span class="pl-k">case</span> <span class="pl-smi">Result</span>.<span class="pl-en">Ok</span>(<span class="pl-smi">var</span> <span class="pl-s1">value</span>) -&gt; <span class="pl-en">fail</span>(<span class="pl-en">format</span>(<span class="pl-s">"Should not enter branch; value is '%s'"</span>, <span class="pl-s1">value</span>));
+            <span class="pl-k">case</span> <span class="pl-smi">Result</span>.<span class="pl-en">Error</span>(<span class="pl-smi">var</span> <span class="pl-s1">throwable</span>) -&gt;
+                    <span class="pl-en">assertEquals</span>(<span class="pl-s1">throwable</span>.<span class="pl-en">getMessage</span>(), <span class="pl-s">"this should not actually fail"</span>);
+        }
+    }
+
+}</pre></div>
+<h2>Future improvements</h2>
+<p>In the future we will be able to use value classes to make Optional even better, now the Optional might still cause a double indirection to access the actual data.<br>
+With value classes from project valhalla, all data of an object can be stored on the stack instead of the heap. This is perfect for Optional, since it is a wrapper around a value.</p>
+<h2>Conclusion</h2>
+<p>While this is a nice possibility, I don't think Java should actually change the current implementation of Optional. This could break some backwards compatibility and would not be worth it.</p>

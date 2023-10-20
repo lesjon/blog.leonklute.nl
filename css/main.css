@@ -112,14 +112,21 @@ textarea {
 .blog-link{
   margin: 10px;
   height: 100px;
+  width: 100%;
+  border: none;
+  background-color: transparent;
+  border-radius: 4px;
+  cursor: pointer;
 }
-/* ==========================================================================
-   Helper classes
-   ========================================================================== */
 
-/*
- * Hide visually and from screen readers
- */
+.blog-link:hover{
+  background-color: #cccccc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.blog-link.selected{
+  background-color: #cccccc;
+  cursor: default;
+}
 
 .hidden,
 [hidden] {
