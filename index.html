@@ -50,16 +50,18 @@
 </div>
 <script>
   const blogButtons = document.getElementsByClassName("blog-link");
+  let selectedButton = null;
 
   for (let btn of blogButtons) {
     btn.addEventListener("click", selected);
   }
 
   function selected(event) {
-    for (let btn of blogButtons) {
-      btn.className = "blog-link";
+    if (selectedButton !== null) {
+      selectedButton.className = "blog-link";
     }
     event.target.classList.add("selected");
+    selectedButton = event.target;
   }
 </script>
 </body>
